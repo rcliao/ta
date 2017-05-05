@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/nlopes/slack"
 )
@@ -20,7 +20,6 @@ func main() {
 	go rtm.ManageConnection()
 
 	for msg := range rtm.IncomingEvents {
-		fmt.Print("Event Received: ")
 		switch ev := msg.Data.(type) {
 		case *slack.HelloEvent:
 			// Ignore hello
@@ -32,7 +31,11 @@ func main() {
 
 		case *slack.MessageEvent:
 			log.Printf("Message: %v\n", ev)
-			handle(ev.Text)
+			// only reply to direct message
+			if strings.HasPrefix(ev.Channel, "D") {
+				rtm.SendMessage(rtm.NewOutgoingMessage("pong", ev.Channel))
+				handle(ev.Text)
+			}
 
 		case *slack.PresenceChangeEvent:
 			log.Printf("Presence Change: %v\n", ev)
