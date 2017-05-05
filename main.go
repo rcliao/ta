@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -15,6 +16,7 @@ func main() {
 	logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
 	slack.SetLogger(logger)
 	api.SetDebug(true)
+	var selfID string
 
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
@@ -25,16 +27,20 @@ func main() {
 			// Ignore hello
 
 		case *slack.ConnectedEvent:
-			log.Println("Infos:", ev.Info)
-			log.Println("Connection counter:", ev.ConnectionCount)
+			log.Println("Connected Infos:", ev.Info)
+			selfID = ev.Info.User.ID
+			log.Println("User ID: ", selfID)
 			rtm.SendMessage(rtm.NewOutgoingMessage("TA bot is online", "C55V47YU9"))
 
 		case *slack.MessageEvent:
 			log.Printf("Message: %v\n", ev)
+			// skip self talk
+			if ev.User == selfID {
+				break
+			}
 			// only reply to direct message
 			if strings.HasPrefix(ev.Channel, "D") {
-				rtm.SendMessage(rtm.NewOutgoingMessage("pong", ev.Channel))
-				handle(ev.Text)
+				rtm.SendMessage(rtm.NewOutgoingMessage(handle(ev.Text), ev.Channel))
 			}
 
 		case *slack.PresenceChangeEvent:
@@ -58,6 +64,7 @@ func main() {
 	}
 }
 
-func handle(text string) {
+func handle(text string) string {
 	log.Printf("Got message content: %v\n", text)
+	return fmt.Sprintf("Pong")
 }
