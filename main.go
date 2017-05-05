@@ -26,25 +26,25 @@ func main() {
 			// Ignore hello
 
 		case *slack.ConnectedEvent:
-			fmt.Println("Infos:", ev.Info)
-			fmt.Println("Connection counter:", ev.ConnectionCount)
+			log.Println("Infos:", ev.Info)
+			log.Println("Connection counter:", ev.ConnectionCount)
 			rtm.SendMessage(rtm.NewOutgoingMessage("TA bot is online", "C55V47YU9"))
 
 		case *slack.MessageEvent:
-			fmt.Printf("Message: %v\n", ev)
+			log.Printf("Message: %v\n", ev)
 			handle(ev.Text)
 
 		case *slack.PresenceChangeEvent:
-			fmt.Printf("Presence Change: %v\n", ev)
+			log.Printf("Presence Change: %v\n", ev)
 
 		case *slack.LatencyReport:
-			fmt.Printf("Current latency: %v\n", ev.Value)
+			log.Printf("Current latency: %v\n", ev.Value)
 
 		case *slack.RTMError:
-			fmt.Printf("Error: %s\n", ev.Error())
+			log.Printf("Error: %s\n", ev.Error())
 
 		case *slack.InvalidAuthEvent:
-			fmt.Printf("Invalid credentials")
+			log.Printf("Invalid credentials")
 			return
 
 		default:
@@ -56,5 +56,5 @@ func main() {
 }
 
 func handle(text string) {
-	fmt.Printf("Got message content: %v\n", text)
+	log.Printf("Got message content: %v\n", text)
 }
