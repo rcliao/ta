@@ -1,15 +1,29 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/nlopes/slack"
 )
 
 func main() {
+	// A mapping between command name and its shell command
+	var commands map[string]string
+	// read commands.json to commands hashmap
+	// TODO: maybe change this commands.json to command line argument
+	file, err := ioutil.ReadFile("./commands.json")
+	if err != nil {
+		panic(err)
+	}
+	json.Unmarshal(file, &commands)
+	log.Printf("Got commands:\n%q\n", commands)
+
 	api := slack.New(os.Getenv("SLACK_API_KEY"))
 	// If you set debugging, it will log all requests to the console
 	// Useful when encountering issues
@@ -40,14 +54,22 @@ func main() {
 			}
 			// only reply to direct message
 			if strings.HasPrefix(ev.Channel, "D") {
-				rtm.SendMessage(rtm.NewOutgoingMessage(handle(ev.Text), ev.Channel))
+				result, err := handle(commands, ev.Text)
+				if err != nil {
+					result = "Error while executing command. Plesae let human know."
+					log.Fatal(err)
+				}
+				rtm.SendMessage(rtm.NewOutgoingMessage(
+					result,
+					ev.Channel,
+				))
 			}
 
 		case *slack.PresenceChangeEvent:
-			log.Printf("Presence Change: %v\n", ev)
+			// log.Printf("Presence Change: %v\n", ev)
 
 		case *slack.LatencyReport:
-			log.Printf("Current latency: %v\n", ev.Value)
+			// log.Printf("Current latency: %v\n", ev.Value)
 
 		case *slack.RTMError:
 			log.Printf("Error: %s\n", ev.Error())
@@ -64,7 +86,16 @@ func main() {
 	}
 }
 
-func handle(text string) string {
+func handle(commands map[string]string, text string) (string, error) {
 	log.Printf("Got message content: %v\n", text)
-	return fmt.Sprintf("Pong")
+	commandParts := strings.Split(commands[text], " ")
+	var output bytes.Buffer
+	cmd := exec.Command(commandParts[0], commandParts[1:]...)
+	cmd.Stdout = &output
+	log.Printf("Running command: `%q`", commandParts)
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+	return output.String(), nil
 }
