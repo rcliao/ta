@@ -1,5 +1,4 @@
 {
 	"ping": "echo pong",
-	"ping-google": "./commands/google.sh",
 	"hello-test": "./commands/hello.sh"
 }
