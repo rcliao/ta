@@ -56,8 +56,7 @@ func main() {
 			if strings.HasPrefix(ev.Channel, "D") {
 				result, err := handle(commands, ev.Text)
 				if err != nil {
-					result = "Error while executing command. Plesae let human know."
-					log.Fatal(err)
+					result = err.Error()
 				}
 				rtm.SendMessage(rtm.NewOutgoingMessage(
 					result,

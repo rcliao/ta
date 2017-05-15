@@ -120,16 +120,13 @@ exports.config = {
     // Make sure you have the wdio adapter package for the specific framework installed
     // before running any tests.
     framework: 'mocha',
-    //
+
     // Test reporter for stdout.
     // The only one supported by default is 'dot'
     // see also: http://webdriver.io/guide/testrunner/reporters.html
     reporters: ['dot','spec','json'],
 
     reporterOptions: {
-        //
-        // If you are using the "xunit" reporter you should define the directory where
-        // WebdriverIO should save all unit reports.
         outputDir: './output'
     },
 
@@ -248,4 +245,4 @@ exports.config = {
      */
     // onComplete: function(exitCode) {
     // }
-}
+};
