@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,32 +16,40 @@ import (
 
 func main() {
 	// A mapping between command name and its shell command
+	commands := parseCommandsJSON("./commands.json")
+	go initSlackBot(commands)
+
+	// start web server for handling Github webhook
+	http.HandleFunc("/hello", helloHandler)
+	http.ListenAndServe(":8080", nil)
+}
+
+func parseCommandsJSON(JSONFilePath string) map[string]string {
 	var commands map[string]string
-	// read commands.json to commands hashmap
-	// TODO: maybe change this commands.json to command line argument
-	file, err := ioutil.ReadFile("./commands.json")
+	file, err := ioutil.ReadFile(JSONFilePath)
 	if err != nil {
 		panic(err)
 	}
 	json.Unmarshal(file, &commands)
-	log.Printf("Got commands:\n%q\n", commands)
+	return commands
+}
 
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Hello")
+}
+
+func initSlackBot(commands map[string]string) {
+	var selfID string
 	api := slack.New(os.Getenv("SLACK_API_KEY"))
-	// If you set debugging, it will log all requests to the console
-	// Useful when encountering issues
 	logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
 	slack.SetLogger(logger)
 	api.SetDebug(true)
-	var selfID string
 
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
 
 	for msg := range rtm.IncomingEvents {
 		switch ev := msg.Data.(type) {
-		case *slack.HelloEvent:
-			// Ignore hello
-
 		case *slack.ConnectedEvent:
 			log.Println("Connected Infos:", ev.Info)
 			selfID = ev.Info.User.ID
@@ -54,7 +64,7 @@ func main() {
 			}
 			// only reply to direct message
 			if strings.HasPrefix(ev.Channel, "D") {
-				result, err := handle(commands, ev.Text)
+				result, err := handleCommand(commands, ev.Text)
 				if err != nil {
 					result = err.Error()
 				}
@@ -64,28 +74,16 @@ func main() {
 				))
 			}
 
-		case *slack.PresenceChangeEvent:
-			// log.Printf("Presence Change: %v\n", ev)
-
-		case *slack.LatencyReport:
-			// log.Printf("Current latency: %v\n", ev.Value)
-
-		case *slack.RTMError:
-			log.Printf("Error: %s\n", ev.Error())
-
 		case *slack.InvalidAuthEvent:
 			log.Printf("Invalid credentials")
 			return
 
 		default:
-
-			// Ignore other events..
-			// fmt.Printf("Unexpected: %v\n", msg.Data)
 		}
 	}
 }
 
-func handle(commands map[string]string, text string) (string, error) {
+func handleCommand(commands map[string]string, text string) (string, error) {
 	log.Printf("Got message content: %v\n", text)
 	commandParts := strings.Split(commands[text], " ")
 	var output bytes.Buffer
