@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,14 +15,40 @@ import (
 	"github.com/nlopes/slack"
 )
 
+var (
+	enableSlackBot = flag.Bool("slackBot", false, "Enable slackbot integration with service")
+)
+
 func main() {
-	// A mapping between command name and its shell command
-	commands := parseCommandsJSON("./commands.json")
-	go initSlackBot(commands)
+	flag.Parse()
+
+	if *enableSlackBot {
+		commands := parseCommandsJSON("./commands.json")
+		go initSlackBot(commands)
+	}
 
 	// start web server for handling Github webhook
-	http.HandleFunc("/hello", helloHandler)
+	http.HandleFunc("/webhook", webhookHandler)
 	http.ListenAndServe(":8080", nil)
+}
+
+/*
+ * In webhook we want to parse the JSON request body in order to run testing.
+ * from the webhook request, we will want to determine student public URL (this
+ * may require a temporary storage to store student repo to its public URL
+ * relationship). From the public URL, we will trigger the WebDriverIO test
+ * against it. Upon the finish of the test, store the result and its SHA for
+ * future reference to see its build status.
+ * Last but not least, we will be posting the status back to Github to complete
+ * the entire webhook event.
+ */
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+	// parse request body
+	// Get student public URL
+	// run Webdriver IO test against the URL and get its result
+	// Store result and SHA
+	// publish status to Github
+	fmt.Println("Hello")
 }
 
 func parseCommandsJSON(JSONFilePath string) map[string]string {
@@ -32,10 +59,6 @@ func parseCommandsJSON(JSONFilePath string) map[string]string {
 	}
 	json.Unmarshal(file, &commands)
 	return commands
-}
-
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Hello")
 }
 
 func initSlackBot(commands map[string]string) {
