@@ -44,6 +44,13 @@ func main() {
  */
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	// parse request body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fmt.Println(string(body))
+	// decoder := json.NewDecoder(r.Body)
 	// Get student public URL
 	// run Webdriver IO test against the URL and get its result
 	// Store result and SHA
