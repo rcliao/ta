@@ -125,4 +125,4 @@ func handleCommand(commands map[string]string, text string) (string, error) {
 		return "", err
 	}
 	return output.String(), nil
-
+}
